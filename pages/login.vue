@@ -9,18 +9,18 @@ const password = ref('');
 
 const supabase = useSupabaseClient()
 
-async function signUp() {
-    const { data, error } = await supabase.auth.signUp({
-        email: email.value,
-        password: password.value,
-    })
+// async function signUp() {
+//     const { data, error } = await supabase.auth.signUp({
+//         email: email.value,
+//         password: password.value,
+//     })
 
-    if (error) {
-        console.error('Error:', error)
-    } else {
-        console.log('Data:', data)
-    }
-}
+//     if (error) {
+//         console.error('Error:', error)
+//     } else {
+//         console.log('Data:', data)
+//     }
+// }
 
 
 async function login() {
@@ -55,7 +55,7 @@ async function login() {
                         <input type="password" id="password" v-model="password" class="input" />
                     </div>
                     <div class="form-control mt-8 flex-row gap-4">
-                        <button @click="signUp()" class="btn btn-primary btn-outline flex-1">Sign Up</button>
+                        <!-- <button @click="signUp()" class="btn btn-primary btn-outline flex-1">Sign Up</button> -->
                         <button type="submit" class="btn btn-primary flex-1">Login</button>
                     </div>
                 </form>
