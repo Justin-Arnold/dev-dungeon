@@ -4,5 +4,12 @@ export default defineNuxtConfig({
     modules: [
         '@nuxtjs/supabase',
         '@nuxtjs/tailwindcss'
-    ]
+    ],
+    supabase: {
+        redirectOptions: {
+            login: '/login',
+            callback: '/success',
+            exclude: ['/'],
+        }
+    },
 })
