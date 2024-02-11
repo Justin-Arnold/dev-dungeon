@@ -34,10 +34,30 @@ export interface Database {
   }
   public: {
     Tables: {
+      experience_events: {
+        Row: {
+          created_at: string
+          experience_value: number
+          id: number
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          experience_value: number
+          id?: number
+          name: string
+        }
+        Update: {
+          created_at?: string
+          experience_value?: number
+          id?: number
+          name?: string
+        }
+      }
       github_integration: {
         Row: {
           commit_count: number
-          created_at: string | null
+          created_at: string
           github_id: string
           github_name: string
           id: number
@@ -45,7 +65,7 @@ export interface Database {
         }
         Insert: {
           commit_count?: number
-          created_at?: string | null
+          created_at?: string
           github_id: string
           github_name: string
           id?: number
@@ -53,10 +73,33 @@ export interface Database {
         }
         Update: {
           commit_count?: number
-          created_at?: string | null
+          created_at?: string
           github_id?: string
           github_name?: string
           id?: number
+          user_id?: string
+        }
+      }
+      profile: {
+        Row: {
+          created_at: string
+          display_name: string
+          id: number
+          total_experience: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          id?: number
+          total_experience?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          id?: number
+          total_experience?: number
           user_id?: string
         }
       }
