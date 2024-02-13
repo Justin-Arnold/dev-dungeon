@@ -15,12 +15,13 @@ function logout() {
             </h2>
             <div class="flex flex-col gap-4 h-full">
                 <NuxtLink to="/home" class="btn btn-primary">Home</NuxtLink>
+                <NuxtLink to="/dungeon" class="btn btn-primary">Dungeon</NuxtLink>
                 <NuxtLink to="/profile" class="btn btn-primary">Profile</NuxtLink>
                 <div class="grow"></div>
                 <button @click="logout()" class="btn btn-primary btn-outline">Logout</button>
             </div>
         </div>
-        <div class="h-full grow p-4">
+        <div class="grow p-4 overflow-hidden flex flex-col">
             <slot></slot>
         </div>
     </div>
