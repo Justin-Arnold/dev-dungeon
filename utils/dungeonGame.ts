@@ -1,5 +1,6 @@
 import MST from "~/utils/minimumSpanningTree";
-import Potion from "~/utils/game/entities/potion";
+import { Potion, Power, Enemy } from "~/utils/game/entities";
+import config from "./game/config";
 
 const VIEWPORT_DIMENSION= 440; // Viewport width and height in pixels
 const VIEWPORT_TILE_DIMENSION = 11; // Viewport width and height in tiles
@@ -19,8 +20,10 @@ export default class Game {
     private cameraX: number = GRID_TILE_DIMENSION / 2 - VIEWPORT_TILE_DIMENSION / 2;
     private cameraY: number = GRID_TILE_DIMENSION / 2 - VIEWPORT_TILE_DIMENSION / 2;
     private rooms: Room[] = [];
-    private playerHP: number = 100;
+    private enemies: Enemy[] = [];
     private potions: Potion[] = [];
+    public level: number = 1;
+    public playerHP: number = 100;
 
     constructor(canvasId: string) {
         const gameCanvas = document.getElementById(canvasId) as HTMLCanvasElement;
@@ -41,6 +44,20 @@ export default class Game {
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         this.generateDungeon();
         this.render();
+    }
+
+    private generateEntities(quantity: number) {
+        let entities = [];
+        for (let i = 0; i < quantity; i++) {
+            let x, y;
+            do {
+                x = Math.floor(Math.random() * GRID_TILE_DIMENSION);
+                y = Math.floor(Math.random() * GRID_TILE_DIMENSION);
+            } while (this.grid[y][x] !== TileType.Floor); // Ensure entities are placed on floor tiles
+            entities.push({ x, y });
+        }
+
+        return entities;
     }
 
     generatePotions() {
@@ -86,7 +103,7 @@ export default class Game {
                             this.ctx.fillStyle = '#000';
                             break;
                         case TileType.Stairs:
-                            this.ctx.fillStyle = 'brown'; // Color for stairs
+                            this.ctx.fillStyle = '#745506';
                             break;
                     }
                     this.ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
@@ -95,14 +112,13 @@ export default class Game {
         }
 
         // Draw enemies
-        this.rooms.forEach(room => {
-            room.enemies.forEach(enemy => {
-                // Convert grid positions to pixel positions for drawing
-                const pixelX = ((enemy.x - this.cameraX) * TILE_SIZE) - (TILE_SIZE / 2);
-                const pixelY = (enemy.y - this.cameraY) * TILE_SIZE - (TILE_SIZE / 2);
-                this.ctx.fillStyle = 'red';
-                this.ctx.fillRect(pixelX, pixelY, TILE_SIZE, TILE_SIZE);
-            });
+        this.enemies.forEach(enemy => {
+            console.log('enemy', enemy);
+            // Convert grid positions to pixel positions for drawing
+            const pixelX = ((enemy.x - this.cameraX) * TILE_SIZE) - (TILE_SIZE / 2);
+            const pixelY = (enemy.y - this.cameraY) * TILE_SIZE - (TILE_SIZE / 2);
+            this.ctx.fillStyle = 'red';
+            this.ctx.fillRect(pixelX, pixelY, TILE_SIZE, TILE_SIZE);
         });
 
         this.potions.forEach(potion => {
@@ -136,8 +152,6 @@ export default class Game {
         const roomIndex = Math.floor(Math.random() * (this.rooms.length - 1)) + 1;
         const room = this.rooms[roomIndex];
 
-        console.log('Placing stairs in room:', room);
-
         // Choose a random position within the room for the stairs
         const stairsX = Math.floor(Math.random() * (room.width - 2)) + room.x + 1;
         const stairsY = Math.floor(Math.random() * (room.height - 2)) + room.y + 1;
@@ -146,49 +160,39 @@ export default class Game {
         this.grid[stairsY][stairsX] = TileType.Stairs;
     }
 
+    generateStartingRoom(): Room {
+        const centralRoomX = Math.floor(config.baseMapSize/2) - Math.floor(config.startingRoomSize/2);
+        const centralRoomY = Math.floor(config.baseMapSize/2) - Math.floor(config.startingRoomSize/2);
+        const centralRoomWidth = config.startingRoomSize;
+        const centralRoomHeight = config.startingRoomSize;
+        return new Room(centralRoomX, centralRoomY, centralRoomWidth, centralRoomHeight);
+    }
+
     generateDungeon() {
-        this.grid = this.createEmptyGrid(); // Reset the grid to all walls
+        this.grid = this.createEmptyGrid();
 
-        // Adjust the central room creation to use the Room class
-        const centralRoomX = Math.floor(GRID_TILE_DIMENSION / 2) - 3;
-        const centralRoomY = Math.floor(GRID_TILE_DIMENSION / 2) - 3;
-        const centralRoomWidth = 7;
-        const centralRoomHeight = 7;
-        const centralRoom = new Room(centralRoomX, centralRoomY, centralRoomWidth, centralRoomHeight);
-
-        // Manually add the central room to the grid (optional if you do this in generateRooms)
-        // this.addRoomToGrid(centralRoom);
-
-        // Start with the central room in the list
-        this.rooms = [centralRoom];
-
-        // Add more rooms
-        this.rooms = this.rooms.concat(this.generateRooms()); // Implement this based on previous logic
-
-        // Add all rooms to the grid
+        // Step 1: Generate Rooms
+        this.rooms = [this.generateStartingRoom()]
+        this.rooms = this.rooms.concat(this.generateRooms());
         this.rooms.forEach(room => this.addRoomToGrid(room));
 
-        this.rooms.forEach(room => {
-            // const numberOfEnemies = Math.floor(Math.random() * 3); // For example, up to 4 enemies per room
-            const numberOfEnemies = 1;
-            room.generateEnemies(numberOfEnemies);
+        // Step 2: Generate Enemies
+        const generatedEnemies = this.generateEntities(config.baseEnemiesPerRoom * this.rooms.length);
+        generatedEnemies.forEach(enemy => this.enemies.push(new Enemy(enemy.x, enemy.y)));
+
+        // Step 3: Generate Potions
+        const generatedPotions = this.generateEntities(config.basePotionsPerMap);
+        const potionHealVariance = config.potionHealMax - config.potionHealMin;
+        generatedPotions.forEach(potion => {
+            const healthRestore = Math.floor(Math.random() * potionHealVariance) + config.potionHealMin;
+            this.potions.push(new Potion(potion.x, potion.y, healthRestore));
         });
 
-        this.generatePotions();
+        // Step 4: Place Stairs
         this.placeStairs();
 
-        // Step 2: Create a Graph of Rooms
-        let edges = MST.calculateEdges(this.rooms);
-
-
-        // Step 3: Calculate MST
-        let mst = MST.calculateMST(edges, this.rooms);
-
-
-        // Step 4: Draw Corridors based on MST
-        mst.forEach(edge => {
-            this.connectRoomsDirectly(this.rooms[edge.from], this.rooms[edge.to]);
-        });
+        // Step 5: Generate Hallways
+        this.generateHallways();
     }
 
     addRoomToGrid(room: Room) {
@@ -199,6 +203,14 @@ export default class Game {
                 }
             }
         }
+    }
+
+    generateHallways() {
+        let edges = MST.calculateEdges(this.rooms);
+        let mst = MST.calculateMST(edges, this.rooms);
+        mst.forEach(edge => {
+            this.connectRoomsDirectly(this.rooms[edge.from], this.rooms[edge.to]);
+        });
     }
 
     connectRoomsDirectly(roomA: Room, roomB: Room) {
@@ -295,33 +307,31 @@ export default class Game {
         const playerCenterX = this.cameraX + VIEWPORT_TILE_DIMENSION / 2;
         const playerCenterY = this.cameraY + VIEWPORT_TILE_DIMENSION / 2;
 
-        this.rooms.forEach(room => {
-            room.enemies.forEach(enemy => {
-                const dx = playerCenterX - enemy.x;
-                const dy = playerCenterY - enemy.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
+        this.enemies.forEach(enemy => {
+            const dx = playerCenterX - enemy.x;
+            const dy = playerCenterY - enemy.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
 
-                if (distance <= 10 && distance > 0) {
-                    // Check if the enemy is adjacent to the player
-                    if (Math.abs(dx) === 1 && dy === 0 || Math.abs(dy) === 1 && dx === 0) {
-                        // Enemy is directly next to the player, apply damage
-                        this.playerHP -= 10;
-                        console.log(`Player took damage from enemy. Player HP: ${this.playerHP}`);
-                    } else {
-                        // Determine primary and secondary movement directions based on greater distance
-                        let primaryAxis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-                        let secondaryAxis = primaryAxis === 'x' ? 'y' : 'x';
-                        let primaryDelta = primaryAxis === 'x' ? Math.sign(dx) : Math.sign(dy);
-                        let secondaryDelta = secondaryAxis === 'x' ? Math.sign(dx) : Math.sign(dy);
+            if (distance <= 10 && distance > 0) {
+                // Check if the enemy is adjacent to the player
+                if (Math.abs(dx) === 1 && dy === 0 || Math.abs(dy) === 1 && dx === 0) {
+                    // Enemy is directly next to the player, apply damage
+                    this.playerHP -= 10;
+                    console.log(`Player took damage from enemy. Player HP: ${this.playerHP}`);
+                } else {
+                    // Determine primary and secondary movement directions based on greater distance
+                    let primaryAxis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+                    let secondaryAxis = primaryAxis === 'x' ? 'y' : 'x';
+                    let primaryDelta = primaryAxis === 'x' ? Math.sign(dx) : Math.sign(dy);
+                    let secondaryDelta = secondaryAxis === 'x' ? Math.sign(dx) : Math.sign(dy);
 
-                        // Attempt primary movement
-                        if (!this.tryMoveEnemy(enemy, primaryAxis, primaryDelta)) {
-                            // Primary movement failed; attempt secondary movement
-                            this.tryMoveEnemy(enemy, secondaryAxis, secondaryDelta);
-                        }
+                    // Attempt primary movement
+                    if (!this.tryMoveEnemy(enemy, primaryAxis, primaryDelta)) {
+                        // Primary movement failed; attempt secondary movement
+                        this.tryMoveEnemy(enemy, secondaryAxis, secondaryDelta);
                     }
                 }
-            });
+            }
         });
 
         // Ensure the player's HP doesn't go below zero
@@ -349,10 +359,8 @@ export default class Game {
         }
 
         // Check for other enemy collision
-        const collisionWithEnemy = this.rooms.some(room =>
-            room.enemies.some(otherEnemy =>
-                otherEnemy !== enemy && otherEnemy.x === nextX && otherEnemy.y === nextY
-            )
+        const collisionWithEnemy = this.enemies.some(otherEnemy =>
+            otherEnemy !== enemy && otherEnemy.x === nextX && otherEnemy.y === nextY
         );
         if (collisionWithEnemy) {
             return false; // Prevent enemy from moving into another enemy
@@ -382,18 +390,16 @@ export default class Game {
 
         // Check if next position is an enemy
         let enemyHit = null;
-        this.rooms.forEach(room => {
-            room.enemies.forEach(enemy => {
-                if (enemy.x === nextPlayerX && enemy.y === nextPlayerY) {
-                    enemyHit = enemy; // Store the enemy that was hit
-                    // Apply damage to the enemy
-                    enemy.health -= 50; // Example damage value
-                    if (enemy.health <= 0) {
-                        // Remove the enemy if health drops to 0 or below
-                        this.removeEnemy(enemy);
-                    }
+        this.enemies.forEach(enemy => {
+            if (enemy.x === nextPlayerX && enemy.y === nextPlayerY) {
+                enemyHit = enemy; // Store the enemy that was hit
+                // Apply damage to the enemy
+                enemy.health -= 50; // Example damage value
+                if (enemy.health <= 0) {
+                    // Remove the enemy if health drops to 0 or below
+                    this.removeEnemy(enemy);
                 }
-            });
+            }
         });
 
         // Check if the player is moving into a floor tile and not an enemy
@@ -426,22 +432,11 @@ export default class Game {
     }
 
     removeEnemy(enemyToRemove) {
-        this.rooms.forEach(room => {
-            room.enemies = room.enemies.filter(enemy => enemy !== enemyToRemove);
-        });
+        this.enemies = this.enemies.filter(enemy => enemy !== enemyToRemove);
     }
 }
 
-class Enemy {
-    public x: number;
-    public y: number;
-    public health: number = 100;
 
-    constructor(x: number, y: number) {
-        this.x = x;
-        this.y = y;
-    }
-}
 
 class Room {
     public x: number;
@@ -468,15 +463,5 @@ class Room {
             x: Math.floor(this.x + this.width / 2),
             y: Math.floor(this.y + this.height / 2)
         };
-    }
-
-    generateEnemies(numberOfEnemies: number) {
-        for (let i = 0; i < numberOfEnemies; i++) {
-            // Ensure enemy positions are integers within the room boundaries
-            const enemyX = Math.floor(Math.random() * (this.width - 1)) + this.x;
-            const enemyY = Math.floor(Math.random() * (this.height - 1)) + this.y;
-
-            this.enemies.push(new Enemy(enemyX, enemyY));
-        }
     }
 }

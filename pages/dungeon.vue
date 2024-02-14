@@ -3,12 +3,41 @@ import DungeonGame from '~/utils/dungeonGame';
 import { onMounted, ref } from 'vue';
 
 const gameCanvas = ref<HTMLCanvasElement | null>(null)
+let game = reactive<DungeonGame | {}>({});
+
+const playerHealth = computed(() => {
+    if (!game.playerHP) {
+        return 0;
+    }
+    return game.playerHP;
+});
+
+const floor = computed(() => {
+    if (!game.value) {
+        return 0;
+    }
+    return game.value.level;
+});
+
+const gameWidth = computed(() => {
+    if (!gameCanvas.value) {
+        return 0;
+    }
+    return gameCanvas.value.width;
+});
+
+const widthClass = computed(() => {
+    if (!gameWidth.value) {
+        return '';
+    }
+    return `w-[${gameWidth.value}px]`;
+});
 
 onMounted(() => {
     if (!gameCanvas.value) {
         throw new Error('gameCanvas is null');
     }
-    new DungeonGame(gameCanvas.value.id);
+    game = reactive(new DungeonGame(gameCanvas.value.id));
 });
 
 </script>
@@ -25,7 +54,16 @@ onMounted(() => {
             Begin your adventure
         </button>
     </div>
+
     <div class="h-full w-full overflow-hidden p-8">
+        <div class="flex justify-between text-4xl" :class="widthClass">
+            <p class="text-white/50">
+                Floor: {{ floor }}
+            </p>
+            <p class="text-white/50">
+                Health: {{ game?.playerHP }}
+            </p>
+        </div>
         <canvas ref="gameCanvas" id="gameCanvas" class="aspect-square h-full mx-auto"></canvas>
     </div>
 </template>
