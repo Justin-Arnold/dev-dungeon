@@ -86,6 +86,40 @@ export default class Game {
         return grid;
     }
 
+    gameOver() {
+        // Optionally, stop the game loop here if you have one
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height); // Clear the game view
+        this.ctx.fillStyle = '#000'; // Choose a text color
+        this.ctx.font = '24px Arial'; // Set font size and family
+        this.ctx.fillText("Game Over", this.canvas.width / 2 - 70, this.canvas.height / 2 - 10);
+        this.ctx.fillText("Press R to Restart", this.canvas.width / 2 - 100, this.canvas.height / 2 + 20);
+
+        // Listen for the 'R' key to restart the game
+        window.addEventListener('keydown', this.restartGame.bind(this));
+    }
+
+    restartGame(event: KeyboardEvent) {
+        if (event.key === 'R' || event.key === 'r') {
+            // Remove the keydown listener to prevent multiple restarts
+            window.removeEventListener('keydown', this.restartGame.bind(this));
+
+            // Reinitialize game state
+            this.initGame(); // You might need to implement this method
+            // Alternatively, you could reload the page to restart the game, but it's not recommended for a smooth user experience
+            // location.reload();
+        }
+    }
+
+    initGame() {
+        this.playerHP.value = 100; // Reset player health
+        this.level.value = 1; // Reset game level or similar state
+        this.enemies = []; // Clear existing enemies
+        this.potions = []; // Clear existing potions
+        // Reset any other game states here
+
+        this.start(); // Assuming 'start' initializes the game or starts the game loop
+    }
+
     render() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height); // Clear the canvas
 
@@ -128,6 +162,9 @@ export default class Game {
         });
 
         this.drawPlayer();
+        if (this.playerHP.value <= 0) {
+            this.gameOver();
+        }
     }
 
     resetPlayerPositionAndCamera() {
@@ -336,6 +373,7 @@ export default class Game {
         this.playerHP.value = Math.max(this.playerHP.value, 0);
         if (this.playerHP.value === 0) {
             console.log('Player has died.');
+            this.gameOver();
             // Handle player death (e.g., end game, restart level)
         }
     }
