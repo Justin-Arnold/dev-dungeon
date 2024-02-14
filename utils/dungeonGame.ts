@@ -70,8 +70,8 @@ export default class Game {
         this.rooms.forEach(room => {
             room.enemies.forEach(enemy => {
                 // Convert grid positions to pixel positions for drawing
-                const pixelX = (enemy.x - this.cameraX) * TILE_SIZE;
-                const pixelY = (enemy.y - this.cameraY) * TILE_SIZE;
+                const pixelX = ((enemy.x - this.cameraX) * TILE_SIZE) - (TILE_SIZE / 2);
+                const pixelY = (enemy.y - this.cameraY) * TILE_SIZE - (TILE_SIZE / 2);
                 this.ctx.fillStyle = 'red';
                 this.ctx.fillRect(pixelX, pixelY, TILE_SIZE, TILE_SIZE);
             });
@@ -224,9 +224,8 @@ export default class Game {
     }
 
     updateEnemies() {
-        const playerCenterX = Math.floor(this.cameraX + VIEWPORT_TILE_DIMENSION / 2);
-        const playerCenterY = Math.floor(this.cameraY + VIEWPORT_TILE_DIMENSION / 2);
-        const detectionRange = 3; // Tiles
+        const playerCenterX = this.cameraX + VIEWPORT_TILE_DIMENSION / 2;
+        const playerCenterY = this.cameraY + VIEWPORT_TILE_DIMENSION / 2;
 
         this.rooms.forEach(room => {
             room.enemies.forEach(enemy => {
@@ -234,47 +233,106 @@ export default class Game {
                 const dy = playerCenterY - enemy.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
-                if (distance < detectionRange) {
-                    // Move enemy towards player
-                    enemy.x += dx / distance; // Normalize vector
-                    enemy.y += dy / distance; // Normalize vector
+                if (distance <= 10 && distance > 0) { // Ensure distance is within detection range
+                    // Determine primary and secondary movement directions based on greater distance
+                    let primaryAxis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+                    let secondaryAxis = primaryAxis === 'x' ? 'y' : 'x';
+                    let primaryDelta = primaryAxis === 'x' ? Math.sign(dx) : Math.sign(dy);
+                    let secondaryDelta = secondaryAxis === 'x' ? Math.sign(dx) : Math.sign(dy);
+
+                    // Attempt primary movement
+                    if (!this.tryMoveEnemy(enemy, primaryAxis, primaryDelta)) {
+                        // Primary movement failed; attempt secondary movement
+                        this.tryMoveEnemy(enemy, secondaryAxis, secondaryDelta);
+                    }
                 }
             });
         });
     }
 
-    handleKeyPress(event: KeyboardEvent) {
-        // Determine the direction of movement
-        let deltaX = 0;
-        let deltaY = 0;
+    tryMoveEnemy(enemy, axis, delta) {
+        let nextX = enemy.x + (axis === 'x' ? delta : 0);
+        let nextY = enemy.y + (axis === 'y' ? delta : 0);
 
+        // Check for wall collision
+        if (this.grid[nextY] && this.grid[nextY][nextX] === TileType.Wall) {
+            return false; // Movement blocked by a wall
+        }
+
+        // Check for player collision
+        const playerPosX = this.cameraX + VIEWPORT_TILE_DIMENSION / 2;
+        const playerPosY = this.cameraY + VIEWPORT_TILE_DIMENSION / 2;
+        if (nextX === playerPosX && nextY === playerPosY) {
+            return false; // Prevent enemy from moving into the player
+        }
+
+        // Check for other enemy collision
+        const collisionWithEnemy = this.rooms.some(room =>
+            room.enemies.some(otherEnemy =>
+                otherEnemy !== enemy && otherEnemy.x === nextX && otherEnemy.y === nextY
+            )
+        );
+        if (collisionWithEnemy) {
+            return false; // Prevent enemy from moving into another enemy
+        }
+
+        // Update enemy position
+        enemy.x = nextX;
+        enemy.y = nextY;
+        return true; // Movement successful
+    }
+
+    handleKeyPress(event: KeyboardEvent) {
+        let deltaX = 0, deltaY = 0;
         switch (event.key) {
             case 'ArrowUp': deltaY = -1; break;
             case 'ArrowDown': deltaY = 1; break;
             case 'ArrowLeft': deltaX = -1; break;
             case 'ArrowRight': deltaX = 1; break;
-            default: return; // Exit if a different key is pressed
+            default: return;
         }
 
-        // Calculate the position the player is trying to move to
-        // Considering the camera is centered around the player, we check one tile in the direction from the center
-        const nextX = this.cameraX + VIEWPORT_TILE_DIMENSION / 2 + deltaX;
-        const nextY = this.cameraY + VIEWPORT_TILE_DIMENSION / 2 + deltaY;
+        const nextPlayerX = this.cameraX + VIEWPORT_TILE_DIMENSION / 2 + deltaX;
+        const nextPlayerY = this.cameraY + VIEWPORT_TILE_DIMENSION / 2 + deltaY;
 
-        // Check if the position is within the grid bounds and not a wall
-        if (nextX >= 0 && nextX < GRID_TILE_DIMENSION && nextY >= 0 && nextY < GRID_TILE_DIMENSION && this.grid[nextY][nextX] === TileType.Floor) {
-            // Move the camera (viewport) in the direction of movement
+        // Check if next position is an enemy
+        let enemyHit = null;
+        this.rooms.forEach(room => {
+            room.enemies.forEach(enemy => {
+                if (enemy.x === nextPlayerX && enemy.y === nextPlayerY) {
+                    enemyHit = enemy; // Store the enemy that was hit
+                    // Apply damage to the enemy
+                    enemy.health -= 50; // Example damage value
+                    if (enemy.health <= 0) {
+                        // Remove the enemy if health drops to 0 or below
+                        this.removeEnemy(enemy);
+                    }
+                }
+            });
+        });
+
+        // Check if the player is moving into a floor tile and not an enemy
+        if (!enemyHit && this.grid[nextPlayerY][nextPlayerX] === TileType.Floor) {
             this.cameraX += deltaX;
             this.cameraY += deltaY;
-            this.updateEnemies(); // Update enemy positions
-            this.render(); // Re-render to update the viewport
         }
+
+        // Update and render even if the player didn't move due to fighting an enemy or running into a wall
+        this.updateEnemies();
+        this.render();
+    }
+
+    removeEnemy(enemyToRemove) {
+        this.rooms.forEach(room => {
+            room.enemies = room.enemies.filter(enemy => enemy !== enemyToRemove);
+        });
     }
 }
 
 class Enemy {
     public x: number;
     public y: number;
+    public health: number = 100;
 
     constructor(x: number, y: number) {
         this.x = x;
@@ -314,6 +372,7 @@ class Room {
             // Ensure enemy positions are integers within the room boundaries
             const enemyX = Math.floor(Math.random() * (this.width - 1)) + this.x;
             const enemyY = Math.floor(Math.random() * (this.height - 1)) + this.y;
+
             this.enemies.push(new Enemy(enemyX, enemyY));
         }
     }
