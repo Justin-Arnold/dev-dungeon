@@ -1,4 +1,5 @@
 import MST from "~/utils/minimumSpanningTree";
+import Potion from "~/utils/game/entities/potion";
 
 const VIEWPORT_DIMENSION= 440; // Viewport width and height in pixels
 const VIEWPORT_TILE_DIMENSION = 11; // Viewport width and height in tiles
@@ -8,6 +9,7 @@ const TILE_SIZE = VIEWPORT_DIMENSION / VIEWPORT_TILE_DIMENSION;
 enum TileType {
     Wall = 0,
     Floor = 1,
+    Stairs = 2,
 }
 
 export default class Game {
@@ -17,6 +19,8 @@ export default class Game {
     private cameraX: number = GRID_TILE_DIMENSION / 2 - VIEWPORT_TILE_DIMENSION / 2;
     private cameraY: number = GRID_TILE_DIMENSION / 2 - VIEWPORT_TILE_DIMENSION / 2;
     private rooms: Room[] = [];
+    private playerHP: number = 100;
+    private potions: Potion[] = [];
 
     constructor(canvasId: string) {
         const gameCanvas = document.getElementById(canvasId) as HTMLCanvasElement;
@@ -37,6 +41,20 @@ export default class Game {
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         this.generateDungeon();
         this.render();
+    }
+
+    generatePotions() {
+        const potionCount = 7; // Number of potions to generate
+        for (let i = 0; i < potionCount; i++) {
+            let x, y;
+            do {
+                x = Math.floor(Math.random() * GRID_TILE_DIMENSION);
+                y = Math.floor(Math.random() * GRID_TILE_DIMENSION);
+            } while (this.grid[y][x] !== TileType.Floor); // Ensure potions are placed on floor tiles
+
+            const healthRestore = Math.floor(Math.random() * 25) + 25; // Randomly determine health restoration value
+            this.potions.push(new Potion(x, y, healthRestore));
+        }
     }
 
     createEmptyGrid(): TileType[][] {
@@ -60,7 +78,17 @@ export default class Game {
                 const tileX = Math.floor(this.cameraX + x) + 1;
                 const tileY = Math.floor(this.cameraY + y) + 1;
                 if (tileX >= 0 && tileX < GRID_TILE_DIMENSION && tileY >= 0 && tileY < GRID_TILE_DIMENSION) {
-                    this.ctx.fillStyle = this.grid[tileY][tileX] === TileType.Floor ? '#FFF' : '#000';
+                    switch (this.grid[tileY][tileX]) {
+                        case TileType.Floor:
+                            this.ctx.fillStyle = '#FFF';
+                            break;
+                        case TileType.Wall:
+                            this.ctx.fillStyle = '#000';
+                            break;
+                        case TileType.Stairs:
+                            this.ctx.fillStyle = 'brown'; // Color for stairs
+                            break;
+                    }
                     this.ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
                 }
             }
@@ -77,7 +105,45 @@ export default class Game {
             });
         });
 
+        this.potions.forEach(potion => {
+            const pixelX = ((potion.x - this.cameraX) * TILE_SIZE) - (TILE_SIZE / 2);
+            const pixelY = ((potion.y - this.cameraY) * TILE_SIZE) - (TILE_SIZE / 2);
+            this.ctx.fillStyle = 'green'; // Choose a color for potions
+            this.ctx.fillRect(pixelX, pixelY, TILE_SIZE, TILE_SIZE); // Draw the potion
+        });
+
         this.drawPlayer();
+    }
+
+    resetPlayerPositionAndCamera() {
+        // Reset camera to center of the grid
+        this.cameraX = GRID_TILE_DIMENSION / 2 - VIEWPORT_TILE_DIMENSION / 2;
+        this.cameraY = GRID_TILE_DIMENSION / 2 - VIEWPORT_TILE_DIMENSION / 2;
+
+        // Optionally, if you want to place the player in a specific location (e.g., the center of the first room)
+        // you can adjust the camera position based on that room's position
+        // For example, if you want to place the player in the center of the first room:
+        // const firstRoomCenter = this.rooms[0].getCenter();
+        // this.cameraX = firstRoomCenter.x - VIEWPORT_TILE_DIMENSION / 2;
+        // this.cameraY = firstRoomCenter.y - VIEWPORT_TILE_DIMENSION / 2;
+
+        // Note: Adjusting the camera based on the room's position may require additional checks
+        // to ensure the camera does not go out of bounds of the grid
+    }
+
+    placeStairs() {
+        // Choose a random room except for the first one (often the starting room)
+        const roomIndex = Math.floor(Math.random() * (this.rooms.length - 1)) + 1;
+        const room = this.rooms[roomIndex];
+
+        console.log('Placing stairs in room:', room);
+
+        // Choose a random position within the room for the stairs
+        const stairsX = Math.floor(Math.random() * (room.width - 2)) + room.x + 1;
+        const stairsY = Math.floor(Math.random() * (room.height - 2)) + room.y + 1;
+
+        // Place the stairs in the grid
+        this.grid[stairsY][stairsX] = TileType.Stairs;
     }
 
     generateDungeon() {
@@ -106,8 +172,10 @@ export default class Game {
             // const numberOfEnemies = Math.floor(Math.random() * 3); // For example, up to 4 enemies per room
             const numberOfEnemies = 1;
             room.generateEnemies(numberOfEnemies);
-
         });
+
+        this.generatePotions();
+        this.placeStairs();
 
         // Step 2: Create a Graph of Rooms
         let edges = MST.calculateEdges(this.rooms);
@@ -233,21 +301,35 @@ export default class Game {
                 const dy = playerCenterY - enemy.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
-                if (distance <= 10 && distance > 0) { // Ensure distance is within detection range
-                    // Determine primary and secondary movement directions based on greater distance
-                    let primaryAxis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-                    let secondaryAxis = primaryAxis === 'x' ? 'y' : 'x';
-                    let primaryDelta = primaryAxis === 'x' ? Math.sign(dx) : Math.sign(dy);
-                    let secondaryDelta = secondaryAxis === 'x' ? Math.sign(dx) : Math.sign(dy);
+                if (distance <= 10 && distance > 0) {
+                    // Check if the enemy is adjacent to the player
+                    if (Math.abs(dx) === 1 && dy === 0 || Math.abs(dy) === 1 && dx === 0) {
+                        // Enemy is directly next to the player, apply damage
+                        this.playerHP -= 10;
+                        console.log(`Player took damage from enemy. Player HP: ${this.playerHP}`);
+                    } else {
+                        // Determine primary and secondary movement directions based on greater distance
+                        let primaryAxis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+                        let secondaryAxis = primaryAxis === 'x' ? 'y' : 'x';
+                        let primaryDelta = primaryAxis === 'x' ? Math.sign(dx) : Math.sign(dy);
+                        let secondaryDelta = secondaryAxis === 'x' ? Math.sign(dx) : Math.sign(dy);
 
-                    // Attempt primary movement
-                    if (!this.tryMoveEnemy(enemy, primaryAxis, primaryDelta)) {
-                        // Primary movement failed; attempt secondary movement
-                        this.tryMoveEnemy(enemy, secondaryAxis, secondaryDelta);
+                        // Attempt primary movement
+                        if (!this.tryMoveEnemy(enemy, primaryAxis, primaryDelta)) {
+                            // Primary movement failed; attempt secondary movement
+                            this.tryMoveEnemy(enemy, secondaryAxis, secondaryDelta);
+                        }
                     }
                 }
             });
         });
+
+        // Ensure the player's HP doesn't go below zero
+        this.playerHP = Math.max(this.playerHP, 0);
+        if (this.playerHP === 0) {
+            console.log('Player has died.');
+            // Handle player death (e.g., end game, restart level)
+        }
     }
 
     tryMoveEnemy(enemy, axis, delta) {
@@ -294,6 +376,9 @@ export default class Game {
 
         const nextPlayerX = this.cameraX + VIEWPORT_TILE_DIMENSION / 2 + deltaX;
         const nextPlayerY = this.cameraY + VIEWPORT_TILE_DIMENSION / 2 + deltaY;
+        console.log('Player moved to:', nextPlayerX, nextPlayerY);
+
+
 
         // Check if next position is an enemy
         let enemyHit = null;
@@ -316,6 +401,24 @@ export default class Game {
             this.cameraX += deltaX;
             this.cameraY += deltaY;
         }
+
+        if (this.grid[nextPlayerY][nextPlayerX] === TileType.Stairs) {
+            console.log('Player has moved to the next floor.');
+            this.generateDungeon(); // Regenerate the dungeon for the next floor
+
+            // Reset the player position and camera to the center of the map
+            this.resetPlayerPositionAndCamera();
+        }
+
+        const potionIndex = this.potions.findIndex(potion => potion.x === nextPlayerX && potion.y === nextPlayerY);
+        if (potionIndex !== -1) {
+            // Player stepped on a potion
+            const potion = this.potions[potionIndex];
+            this.playerHP = Math.min(this.playerHP + potion.healthRestore, 100); // Increase player health, max 100
+            console.log(`Player picked up a potion and restored ${potion.healthRestore} health.`);
+            this.potions.splice(potionIndex, 1); // Remove the potion from the map
+        }
+
 
         // Update and render even if the player didn't move due to fighting an enemy or running into a wall
         this.updateEnemies();
