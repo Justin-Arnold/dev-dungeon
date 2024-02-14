@@ -22,8 +22,8 @@ export default class Game {
     private rooms: Room[] = [];
     private enemies: Enemy[] = [];
     private potions: Potion[] = [];
-    public level: number = 1;
-    public playerHP: number = 100;
+    public level = ref(1);
+    public playerHP = ref(100);
 
     constructor(canvasId: string) {
         const gameCanvas = document.getElementById(canvasId) as HTMLCanvasElement;
@@ -113,7 +113,6 @@ export default class Game {
 
         // Draw enemies
         this.enemies.forEach(enemy => {
-            console.log('enemy', enemy);
             // Convert grid positions to pixel positions for drawing
             const pixelX = ((enemy.x - this.cameraX) * TILE_SIZE) - (TILE_SIZE / 2);
             const pixelY = (enemy.y - this.cameraY) * TILE_SIZE - (TILE_SIZE / 2);
@@ -316,8 +315,7 @@ export default class Game {
                 // Check if the enemy is adjacent to the player
                 if (Math.abs(dx) === 1 && dy === 0 || Math.abs(dy) === 1 && dx === 0) {
                     // Enemy is directly next to the player, apply damage
-                    this.playerHP -= 10;
-                    console.log(`Player took damage from enemy. Player HP: ${this.playerHP}`);
+                    this.playerHP.value -= 10;
                 } else {
                     // Determine primary and secondary movement directions based on greater distance
                     let primaryAxis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
@@ -335,8 +333,8 @@ export default class Game {
         });
 
         // Ensure the player's HP doesn't go below zero
-        this.playerHP = Math.max(this.playerHP, 0);
-        if (this.playerHP === 0) {
+        this.playerHP.value = Math.max(this.playerHP.value, 0);
+        if (this.playerHP.value === 0) {
             console.log('Player has died.');
             // Handle player death (e.g., end game, restart level)
         }
@@ -384,7 +382,6 @@ export default class Game {
 
         const nextPlayerX = this.cameraX + VIEWPORT_TILE_DIMENSION / 2 + deltaX;
         const nextPlayerY = this.cameraY + VIEWPORT_TILE_DIMENSION / 2 + deltaY;
-        console.log('Player moved to:', nextPlayerX, nextPlayerY);
 
 
 
@@ -409,7 +406,6 @@ export default class Game {
         }
 
         if (this.grid[nextPlayerY][nextPlayerX] === TileType.Stairs) {
-            console.log('Player has moved to the next floor.');
             this.generateDungeon(); // Regenerate the dungeon for the next floor
 
             // Reset the player position and camera to the center of the map
@@ -420,7 +416,7 @@ export default class Game {
         if (potionIndex !== -1) {
             // Player stepped on a potion
             const potion = this.potions[potionIndex];
-            this.playerHP = Math.min(this.playerHP + potion.healthRestore, 100); // Increase player health, max 100
+            this.playerHP.value = Math.min(this.playerHP.value + potion.healthRestore, 100); // Increase player health, max 100
             console.log(`Player picked up a potion and restored ${potion.healthRestore} health.`);
             this.potions.splice(potionIndex, 1); // Remove the potion from the map
         }
