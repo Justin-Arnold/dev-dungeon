@@ -52,6 +52,7 @@ function experienceForLevelEquation(L: number, baseXP: number = 100, growthRate:
     return Math.floor(baseXP * ((1 + growthRate) ** L) * cycleMultiplier)
 }
 
+const totalExperienceToReachCurrentLevel = ref(0)
 
 const levelFromExperience = computed(() => {
     let totalXp = profile.value?.[0]?.total_experience ?? 0
@@ -59,16 +60,31 @@ const levelFromExperience = computed(() => {
     let level = 1
     while (accumulatedXp <= totalXp) {
         const xpForNextLevel = experienceForLevelEquation(level)
-        accumulatedXp += xpForNextLevel
-        if (accumulatedXp > totalXp) {
+        if (accumulatedXp + xpForNextLevel > totalXp) {
+            // Update leftOverExperience here before breaking
+            totalExperienceToReachCurrentLevel.value = accumulatedXp
             level !== 1 ? level-- : ''
             break
-        } else {
-            level++
         }
+        accumulatedXp += xpForNextLevel
+        level++
     }
     return level
 })
+
+const currentLevelXpProgress = computed(() => {
+    if (profile.value?.[0]?.total_experience === undefined) {
+        return 0
+    }
+    const xp = profile.value?.[0]?.total_experience - totalExperienceToReachCurrentLevel.value
+    return xp
+})
+
+const totalExperienceNeededToLevelUp = computed(() => {
+    return experienceForLevelEquation(levelFromExperience.value+1)
+})
+
+
 </script>
 
 <template>
@@ -88,8 +104,10 @@ const levelFromExperience = computed(() => {
                         <p class="absolute top-0 left-1/2 z-2 text-black/60 dark:text-white/60 -translate-x-1/2">100 / 100 HP</p>
                     </div>
                     <div class="relative">
-                        <progress class="progress progress-primary w-56 h-6 shadow-md" value="23" max="100"></progress>
-                        <p class="absolute top-0 left-1/2 z-2 text-black/60 dark:text-white/60 -translate-x-1/2">23 / 100 XP</p>
+                        <progress class="progress progress-primary w-56 h-6 shadow-md" :value="currentLevelXpProgress" :max="totalExperienceNeededToLevelUp"></progress>
+                        <p class="absolute top-0 left-1/2 z-2 text-black/60 dark:text-white/60 -translate-x-1/2">
+                            {{ currentLevelXpProgress }} / {{ totalExperienceNeededToLevelUp }} XP
+                        </p>
                     </div>
                 </div>
             </div>
