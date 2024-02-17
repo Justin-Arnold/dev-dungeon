@@ -47,8 +47,8 @@ const userLevel = computed(() => {
     return `${levelFromExperience.value}`
 })
 
-function experienceForLevelEquation(L: number, baseXP: number = 100, growthRate: number = 0.1, cycleFactor: number = 2.0) {
-    const cycleMultiplier = 1 + ((Math.floor((L - 1) / 10)) / cycleFactor)
+function experienceForLevelEquation(L: number, baseXP: number = 100, growthRate: number = 0.05, cycleFactor: number = 10.0) {
+    const cycleMultiplier = .5 + ((Math.floor((L - 1) / 10)) / cycleFactor)
     return Math.floor(baseXP * ((1 + growthRate) ** L) * cycleMultiplier)
 }
 
