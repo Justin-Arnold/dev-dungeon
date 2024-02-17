@@ -1,6 +1,14 @@
 import MST from "~/utils/minimumSpanningTree";
 import { Potion, Power, Enemy } from "~/utils/game/entities";
 import config from "./game/config";
+import floorImage from "~/assets/floor.png";
+
+
+const images = {
+    floor: new Image(),
+};
+
+images.floor.src = floorImage;
 
 const VIEWPORT_DIMENSION= 440; // Viewport width and height in pixels
 const VIEWPORT_TILE_DIMENSION = 11; // Viewport width and height in tiles
@@ -35,7 +43,12 @@ export default class Game {
         this.canvas = gameCanvas
         this.ctx = gameCanvas.getContext('2d')!;
         this.grid = this.createEmptyGrid();
-        this.start();
+        let intervalId = setInterval(() => {
+            if (this.areImagesLoaded()) {
+                clearInterval(intervalId);
+                this.start(); // Replace 'game.start' with your game initialization
+            }
+        }, 100); // Check every 100 milliseconds
         window.addEventListener('keydown', this.handleKeyPress.bind(this));
     }
 
@@ -44,6 +57,12 @@ export default class Game {
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         this.generateDungeon();
         this.render();
+    }
+
+    // Function to check if all images are loaded before starting
+    areImagesLoaded() {
+        // Check every image in the 'images' object for the 'complete' property
+        return Object.values(images).every(img => img.complete);
     }
 
     private generateEntities(quantity: number) {
@@ -131,16 +150,18 @@ export default class Game {
                 if (tileX >= 0 && tileX < GRID_TILE_DIMENSION && tileY >= 0 && tileY < GRID_TILE_DIMENSION) {
                     switch (this.grid[tileY][tileX]) {
                         case TileType.Floor:
-                            this.ctx.fillStyle = '#FFF';
+                            this.ctx.drawImage(images.floor, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
                             break;
                         case TileType.Wall:
                             this.ctx.fillStyle = '#000';
+                            this.ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
                             break;
                         case TileType.Stairs:
                             this.ctx.fillStyle = '#745506';
+                            this.ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
                             break;
                     }
-                    this.ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+
                 }
             }
         }
