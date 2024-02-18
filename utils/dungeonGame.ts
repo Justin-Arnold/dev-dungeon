@@ -2,13 +2,19 @@ import MST from "~/utils/minimumSpanningTree";
 import { Potion, Power, Enemy } from "~/utils/game/entities";
 import config from "./game/config";
 import floorImage from "~/assets/floor.png";
+import nerdImage from "~/assets/nerd.png";
+import virusImage from "~/assets/virus.png";
 
 
 const images = {
     floor: new Image(),
+    player: new Image(),
+    enemy: new Image(),
 };
 
 images.floor.src = floorImage;
+images.player.src = nerdImage;
+images.enemy.src = virusImage;
 
 const VIEWPORT_DIMENSION= 440; // Viewport width and height in pixels
 const VIEWPORT_TILE_DIMENSION = 11; // Viewport width and height in tiles
@@ -171,8 +177,7 @@ export default class Game {
             // Convert grid positions to pixel positions for drawing
             const pixelX = ((enemy.x - this.cameraX) * TILE_SIZE) - (TILE_SIZE / 2);
             const pixelY = (enemy.y - this.cameraY) * TILE_SIZE - (TILE_SIZE / 2);
-            this.ctx.fillStyle = 'red';
-            this.ctx.fillRect(pixelX, pixelY, TILE_SIZE, TILE_SIZE);
+            this.ctx.drawImage(images.enemy, pixelX, pixelY, TILE_SIZE, TILE_SIZE);
         });
 
         this.potions.forEach(potion => {
@@ -356,8 +361,7 @@ export default class Game {
         // Player is now correctly centered with odd-numbered viewport dimensions
         const playerX = Math.floor(VIEWPORT_TILE_DIMENSION / 2) * TILE_SIZE;
         const playerY = Math.floor(VIEWPORT_TILE_DIMENSION / 2) * TILE_SIZE;
-        this.ctx.fillStyle = '#0000FF'; // Blue color for the player
-        this.ctx.fillRect(playerX, playerY, TILE_SIZE, TILE_SIZE);
+        this.ctx.drawImage(images.player, playerX, playerY, TILE_SIZE, TILE_SIZE);
     }
 
     updateEnemies() {
