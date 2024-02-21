@@ -5,6 +5,11 @@ export default defineNuxtConfig({
         '@nuxtjs/supabase',
         '@nuxtjs/tailwindcss'
     ],
+    runtimeConfig: {
+        public: {
+            githubAppUrl: 'https://github.com/apps/dev-dungeon-app-development/installations/new'
+        }
+    },
     supabase: {
         redirectOptions: {
             login: '/login',

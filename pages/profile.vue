@@ -2,11 +2,11 @@
 const user = useSupabaseUser()
 import type { Database } from '~/types/database.types'
 
-
+const runtimeConfig = useRuntimeConfig()
+const appUrl = runtimeConfig.public.githubAppUrl
 
 function addGithub() {
-    console.log('adding github')
-    navigateTo('https://github.com/apps/dev-dungeon-app/installations/new', {external: true})
+    navigateTo(appUrl, {external: true})
 }
 
 const client = useSupabaseClient<Database>()
