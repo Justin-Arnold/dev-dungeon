@@ -51,6 +51,30 @@ export default defineEventHandler(async (event) => {
                 createError(existingUserError.message)
             }
 
+            //find how many commits this user has
+            const commitCount = groupedCommits[author].length
+            console.log('commitCount: ', commitCount)
+
+            //fetch first
+            const { data: commitXpEvent, error: xpError } = await (await client.from('experience_events').select().eq('name', 'Commit to Repository'))
+
+            if (xpError) {
+                createError(xpError.message)
+            }
+
+            if (commitXpEvent === null) {
+                createError('Commit to Repository experience event not found')
+                return
+            }
+
+            const xpForEvent = commitXpEvent[0].experience_value
+            const totalXpForEvent = commitCount * xpForEvent
+            console.log('totalXpForEvent: ', totalXpForEvent)
+
+            if (existingUserError) {
+                createError(existingUserError.message)
+            }
+
             const existing = existingUser === null ? null : existingUser[0]
             const existingCommitCount = existing ? existing.commit_count : 0
 
@@ -58,6 +82,33 @@ export default defineEventHandler(async (event) => {
 
             if (error) {
                 createError(error.message)
+            } else {
+                console.log('data: ', data)
+            }
+
+            if (existingUser === null) {
+                createError('User not found')
+                return
+            }
+            const { data: currentXp, error: currentXpError } = await client.from('profile').select('total_experience').match({ user_id: existingUser[0].user_id })
+
+
+            if (currentXpError) {
+                console.log('currentXpError: ', currentXpError)
+                createError(currentXpError.message)
+            } else {
+                console.log('currentXp: ', currentXp)
+            }
+
+
+            const currentXpValue = currentXp !== null ? currentXp[0].total_experience : 0
+            const { data: xpData, error: xpError2 } = await client.from('profile').update({total_experience: currentXpValue + totalXpForEvent}).match({ user_id: existingUser[0].user_id })
+
+            if (xpError2) {
+                console.log('xpError2: ', xpError2)
+                createError(xpError2.message)
+            } else {
+                console.log('xpData: ', xpData)
             }
         })
     }
