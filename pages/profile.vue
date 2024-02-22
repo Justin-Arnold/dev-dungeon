@@ -128,6 +128,7 @@ const totalExperienceNeededToLevelUp = computed(() => {
                     </div>
                 </div>
             </div>
+            <ProfileIntegrationSectionCodewars />
         </div>
 
     </div>
