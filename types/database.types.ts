@@ -34,6 +34,29 @@ export interface Database {
   }
   public: {
     Tables: {
+      codewars_integration: {
+        Row: {
+          created_at: string | null
+          honor: number
+          id: number
+          user_id: string
+          username: string
+        }
+        Insert: {
+          created_at?: string | null
+          honor?: number
+          id?: number
+          user_id: string
+          username: string
+        }
+        Update: {
+          created_at?: string | null
+          honor?: number
+          id?: number
+          user_id?: string
+          username?: string
+        }
+      }
       experience_events: {
         Row: {
           created_at: string
