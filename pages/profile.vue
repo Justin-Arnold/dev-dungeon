@@ -60,10 +60,10 @@ const levelFromExperience = computed(() => {
     let level = 1
     while (accumulatedXp <= totalXp) {
         const xpForNextLevel = experienceForLevelEquation(level)
+        console.log('xpForNextLevel', level, xpForNextLevel)
         if (accumulatedXp + xpForNextLevel > totalXp) {
             // Update leftOverExperience here before breaking
             totalExperienceToReachCurrentLevel.value = accumulatedXp
-            level !== 1 ? level-- : ''
             break
         }
         accumulatedXp += xpForNextLevel
@@ -81,7 +81,7 @@ const currentLevelXpProgress = computed(() => {
 })
 
 const totalExperienceNeededToLevelUp = computed(() => {
-    return experienceForLevelEquation(levelFromExperience.value+1)
+    return experienceForLevelEquation(levelFromExperience.value)
 })
 
 
