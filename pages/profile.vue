@@ -88,7 +88,7 @@ const totalExperienceNeededToLevelUp = computed(() => {
 </script>
 
 <template>
-    <div class="flex flex-col gap-8">
+    <div class="flex flex-col gap-8 overflow-y-auto">
         <div class="flex justify-between">
             <div class="flex h-full gap-4">
                 <div class="grid place-items-center h-44 rounded bg-base-200 !aspect-square shadow-md">
@@ -115,16 +115,21 @@ const totalExperienceNeededToLevelUp = computed(() => {
                 <img src="~/assets/profile.webp" class="object-cover w-64 rounded"/>
             </div>
         </div>
-        <div class="flex flex-col gap-2">
-            <h2 class="text-2xl">Integrations</h2>
-            <div class="rounded border border-neutral">
-                <div class="flex p-4 gap-4">
-                    <button :disabled="hasExistingGithubIntegration" @click="addGithub()" class="btn btn-primary btn-outline text-nowrap">
-                        Link Github
-                    </button>
-                    <div v-if="hasExistingGithubIntegration">
-                        <p>Name: {{ githubData?.github_name }}</p>
-                        <p>Commits registered: {{ githubData?.commit_count }}</p>
+        <h2 class="text-2xl">Integrations</h2>
+        <div class="grid grid-cols-2 gap-4">
+            <div class="card bg-base-100 shadow-lg">
+                <div class="card-body">
+                    <div class="card-title">
+                        <h3>Github</h3>
+                    </div>
+                    <div class="flex gap-4">
+                        <button :disabled="hasExistingGithubIntegration" @click="addGithub()" class="btn btn-primary btn-outline text-nowrap">
+                            Link Github
+                        </button>
+                        <div v-if="hasExistingGithubIntegration">
+                            <p>Name: {{ githubData?.github_name }}</p>
+                            <p>Commits registered: {{ githubData?.commit_count }}</p>
+                        </div>
                     </div>
                 </div>
             </div>

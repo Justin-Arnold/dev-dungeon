@@ -8,6 +8,7 @@ const user = useSupabaseUser()
 
 const isFetching = ref(false)
 const username = ref('')
+const honor = ref(0)
 const hasExistingIntegration = ref(false)
 
 const readyToFetchCodewarsData = computed(() => {
@@ -31,13 +32,14 @@ async function getCodewarsUser() {
             })
         })
 
-        //add 1 xp per honor to the user's total experience
         const { data: profile, error: profileError } = await client.from('profile').select().eq('user_id', user.value?.id ?? '')
 
         if (profileError) {
             createError(profileError.message)
         } else {
-            const newExperience = profile[0].total_experience + response.honor
+            const startingHonor = honor.value
+            const newHonor = response.honor - startingHonor
+            const newExperience = profile[0].total_experience + newHonor
             await client.from('profile').update({ total_experience: newExperience }).eq('user_id', user.value?.id ?? '')
         }
 
@@ -63,6 +65,7 @@ onMounted(async () => {
         if (existingIntegration.length > 0) {
             hasExistingIntegration.value = true
             username.value = existingIntegration[0].username
+            honor.value = existingIntegration[0].honor
         }
     }
 })
@@ -70,18 +73,33 @@ onMounted(async () => {
 </script>
 
 <template>
-    <div class="rounded border border-neutral p-4 space-y-4 w-fit">
-        <h3 class="text-lg">Codewars</h3>
-        <div class="flex gap-4">
-            <input v-model="username" :disabled="hasExistingIntegration" type="text" class="input input-bordered w-80" placeholder="Enter your Codewars username" />
-            <button :disabled="!readyToFetchCodewarsData" @click="getCodewarsUser()" class="btn btn-primary btn-outline text-nowrap">
-                Link Codewars
-                <span v-show="isFetching" class="loading loading-spinner"></span>
-            </button>
-            <!-- <div v-if="hasExistingGithubIntegration">
-                <p>Name: {{ githubData?.github_name }}</p>
-                <p>Commits registered: {{ githubData?.commit_count }}</p>
-            </div> -->
+    <div class="card bg-base-100 shadow-lg h-80">
+        <div class="card-body">
+            <div class="card-title">
+                <h3 class="text-lg">Codewars</h3>
+            </div>
+            <div v-if="!hasExistingIntegration" class="h-full grid place-items-center">
+                <div class="flex flex-col items-left gap-2">
+                    <div class="flex gap-2">
+                        <input v-model="username" :disabled="hasExistingIntegration" type="text" class="input input-bordered w-80" placeholder="Enter your Codewars username" />
+                        <button :disabled="!readyToFetchCodewarsData" @click="getCodewarsUser()" class="btn btn-primary btn-outline text-nowrap w-fit">
+                            Link Codewars
+                            <span v-show="isFetching" class="loading loading-spinner"></span>
+                        </button>
+                    </div>
+                    <p class="text-center">There is no linked Codewars account, link one to start earning experience.</p>
+                </div>
+            </div>
+            <div v-else class="h-full grid place-items-center">
+                <div class="flex flex-col items-center gap-2">
+                    <p class="text-lg">Linked Username: {{ username }}</p>
+                    <p class="mb-2">Total Honor Earned: {{ honor }}</p>
+                    <button @click="getCodewarsUser()" class="btn btn-primary btn-outline text-nowrap w-fit">
+                        Refresh Data
+                        <span v-show="isFetching" class="loading loading-spinner"></span>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </template>

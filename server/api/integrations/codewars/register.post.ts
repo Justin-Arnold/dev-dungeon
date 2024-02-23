@@ -16,12 +16,16 @@ export default defineEventHandler(async (event) => {
         createError('User not found');
     }
 
+    console.log('honor', body.honor, 'username', body.username, 'user', user!.id);
+
     //post to codewars_integration table in supabase
-    const { data, error } = await client.from('codewars_integration').insert({
+    const { data, error } = await client.from('codewars_integration').upsert({
         username: body.username,
         honor: body.honor,
         user_id: user!.id,
-    });
+    }, { onConflict: 'user_id' });
+
+    console.log('d', data);
 
     if (error) {
         createError(error.message);
