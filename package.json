@@ -1,20 +1,12 @@
 {
-  "name": "nuxt-app",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "build": "nuxt build",
-    "dev": "nuxt dev",
-    "generate": "nuxt generate",
-    "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
-  },
-  "devDependencies": {
-    "@nuxtjs/supabase": "^1.1.6",
-    "@nuxtjs/tailwindcss": "^6.11.3",
-    "daisyui": "^4.6.1",
-    "nuxt": "^3.10.0",
-    "vue": "^3.4.15",
-    "vue-router": "^4.2.5"
-  }
+    "name": "dev-dungeon",
+    "version": "1.0.0",
+    "private": true,
+    "workspaces": [
+        "application/",
+        "database/"
+    ],
+    "scripts": {
+        "dev": "npm run dev --workspace=application"
+    }
 }

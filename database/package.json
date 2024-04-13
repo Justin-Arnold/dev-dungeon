@@ -1,0 +1,12 @@
+{
+    "name": "dev-dungeon-database",
+    "version": "1.0.0",
+    "scripts": {
+        "generate-types": "supabase gen types typescript --local > types/supabase.ts"
+    },
+    "types": "./types/supabase.ts",
+    "dependencies": {},
+    "devDependencies": {
+        "supabase": "^1.153.4"
+    }
+}

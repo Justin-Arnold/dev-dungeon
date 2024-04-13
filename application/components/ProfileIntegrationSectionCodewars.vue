@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Database } from '~/types/database.types'
+import type { Database } from 'dev-dungeon-supabase'
 
 const CODEWARS_USER_API = 'https://www.codewars.com/api/v1/users/'
 

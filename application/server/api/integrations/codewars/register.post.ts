@@ -1,6 +1,6 @@
 import { serverSupabaseClient } from '#supabase/server'
 import { serverSupabaseUser } from '#supabase/server'
-import type { Database } from '~/types/database.types'
+import type { Database } from 'dev-dungeon-supabase'
 
 export default defineEventHandler(async (event) => {
     const body = await readBody(event)

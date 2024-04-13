@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const user = useSupabaseUser()
-import type { Database } from '~/types/database.types'
+import type { Database } from 'dev-dungeon-supabase'
 
 const runtimeConfig = useRuntimeConfig()
 const appUrl = runtimeConfig.public.githubAppUrl
