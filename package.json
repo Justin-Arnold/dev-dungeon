@@ -7,6 +7,7 @@
         "database/"
     ],
     "scripts": {
-        "dev": "npm run dev --workspace=application"
+        "dev": "npm run dev --workspace=application",
+        "test": "npm run test --workspace=application"
     }
 }
